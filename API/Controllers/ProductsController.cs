@@ -17,7 +17,7 @@ public class ProductsController : ControllerBase
     {
         this.context = context;
     }
-    
+
 
     /// <summary>
     /// Handles HTTP GET requests to retrieve all products from the database.
@@ -63,7 +63,7 @@ public class ProductsController : ControllerBase
         return await context.Products.ToListAsync();
     }
 
-    [HttpGet("id:int")] // api/products/2
+    [HttpGet("{id:int}")]// api/products/2
     public async Task<ActionResult<Product>> GetProduct(int id)
     {
         var product = await context.Products.FindAsync(id);
@@ -120,6 +120,79 @@ public class ProductsController : ControllerBase
     }
 
 
+    /// <summary>
+    /// Handles HTTP PUT requests to update an existing product in the database.
+    /// </summary>
+    /// <param name="id">
+    /// The ID of the product to update. This is usually provided in the URL path.
+    /// </param>
+    /// <param name="product">
+    /// The <see cref="Product"/> object containing updated product information from the request body.
+    /// </param>
+    /// <returns>
+    /// Returns an <see cref="ActionResult{Product}"/> indicating the result of the operation:
+    /// - 204 No Content: Successfully updated the product
+    /// - 400 Bad Request: If the product IDs do not match or the product does not exist
+    /// </returns>
+    /// <remarks>
+    /// Example request:
+    /// PUT /api/products/5
+    /// {
+    ///   "id": 5,
+    ///   "name": "Updated Laptop",
+    ///   "price": 1399.99,
+    ///   "description": "Updated description",
+    ///   "brand": "Updated brand",
+    ///   "type": "Updated type",
+    ///   "quantityInStock": 50,
+    ///   "pictureUrl": "https://example.com/updated-image.jpg"
+    /// }
+    /// </remarks>
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult<Product>> UpdateProduct(int id, Product product)
+    {
+        // Validate the request:
+        // Check if the ID in the URL matches the product's ID in the body
+        // Also check if the product actually exists in the database
+        if (product.Id != id || !ProductExists(id))
+        {
+            // Return 400 Bad Request if IDs do not match or product does not exist
+            return BadRequest("Cannot update this product");
+        }
+
+        // Mark the entity as modified:
+        // This tells Entity Framework Core that the product entity has been changed
+        // EF Core will generate an UPDATE SQL command for this entity on SaveChangesAsync()
+        context.Entry(product).State = EntityState.Modified;
+
+        // Save changes asynchronously:
+        // This executes the UPDATE command in the database
+        await context.SaveChangesAsync();
+
+        // Return 204 No Content:
+        // Standard REST practice: indicate the update succeeded without returning the updated object
+        return NoContent();
+    }
+
+    private bool ProductExists(int id)
+    {
+        return context.Products.Any(x => x.Id == id);
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<ActionResult> DeleteProduct(int id)
+    {
+        var product = await context.Products.FindAsync(id);
+
+        if (product == null) return NotFound();
+
+        context.Products.Remove(product);
+
+        await context.SaveChangesAsync();
+
+        return NoContent();
+
+    }
 
 
 }
