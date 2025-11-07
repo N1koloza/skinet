@@ -1,141 +1,159 @@
 using Core.Entities;
-using Infrastructure.Data;
+using Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace API.Controllers;
 
+/// <summary>
+/// Controller responsible for handling CRUD operations for <see cref="Product"/> entities.
+/// This class uses dependency injection to access a repository implementing <see cref="IProductRepository"/>.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
-public class ProductsController : ControllerBase
+public class ProductsController(IProductRepository repo) : ControllerBase
 {
-    // Dependency: StoreContext allows access to the database through EF Core
-    private readonly StoreContext context;
-
-    // Constructor: receives StoreContext from ASP.NET Core's built-in Dependency Injection (DI)
-    public ProductsController(StoreContext context)
-    {
-        this.context = context;
-    }
-
+    // =====================
+    //        GET ALL
+    // =====================
 
     /// <summary>
-    /// Handles HTTP GET requests to retrieve all products from the database.
+    /// Retrieves all products from the database.
     /// </summary>
     /// <returns>
-    /// An asynchronous task that returns an <see cref="ActionResult{T}"/> containing a collection of <see cref="Product"/> entities.
+    /// An asynchronous task that returns an <see cref="ActionResult{T}"/> containing 
+    /// a read-only list of <see cref="Product"/> entities.
     /// </returns>
     /// <remarks>
-    /// This endpoint fetches all available products from the database and returns them as a JSON array.
+    /// This endpoint fetches all products asynchronously and returns them as a JSON array.
     /// 
     /// Example request:
-    /// GET /api/products
-    /// 
+    /// <code>GET /api/products</code>
+    ///
     /// Example response:
+    /// <code>
     /// HTTP 200 OK
     /// [
-    ///   {
-    ///     "id": 1,
-    ///     "name": "Laptop",
-    ///     "price": 1299.99,
-    ///     "description": "High-performance business laptop"
-    ///   },
-    ///   {
-    ///     "id": 2,
-    ///     "name": "Mouse",
-    ///     "price": 25.50,
-    ///     "description": "Wireless optical mouse"
-    ///   }
+    ///   { "id": 1, "name": "Laptop", "price": 1299.99 },
+    ///   { "id": 2, "name": "Mouse", "price": 25.50 }
     /// ]
+    /// </code>
     /// </remarks>
-    /// <response code="200">Returns the list of products successfully retrieved from the database.</response>
-    /// <response code="500">If there was an internal server error during data retrieval.</response>
+    /// <response code="200">Returns the list of products successfully retrieved.</response>
+    /// <response code="500">If an internal server error occurred during retrieval.</response>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Product>>> GetProduct()
+    public async Task<ActionResult<IReadOnlyList<Product>>> GetProduct()
     {
-        // Explanation of return type:
-        // Task<>   → because the operation is asynchronous (non-blocking)
-        // ActionResult<> → allows returning HTTP responses (e.g. 200 OK, 404 Not Found)
-        // IEnumerable<Product> → a collection (list) of Product objects
+        // Asynchronously retrieves all Product entities from the repository.
+        // The repository handles EF Core query execution and context management.
+        var products = await repo.GetProductsAsync();
 
-        // Fetch all products from the database asynchronously
-        // ToListAsync() executes a SQL SELECT query via EF Core and returns a list of Product entities
-        return await context.Products.ToListAsync();
+        // Return the product list wrapped in a 200 OK HTTP response.
+        return Ok(products);
     }
 
-    [HttpGet("{id:int}")]// api/products/2
+    // =====================
+    //       GET BY ID
+    // =====================
+
+    /// <summary>
+    /// Retrieves a single product by its unique ID.
+    /// </summary>
+    /// <param name="id">The ID of the product to retrieve.</param>
+    /// <returns>
+    /// An <see cref="ActionResult{T}"/> containing the requested <see cref="Product"/> 
+    /// if found, or a 404 Not Found response if the product does not exist.
+    /// </returns>
+    /// <remarks>
+    /// Example request:
+    /// <code>GET /api/products/5</code>
+    /// </remarks>
+    /// <response code="200">Returns the requested product.</response>
+    /// <response code="404">If the product with the specified ID does not exist.</response>
+    [HttpGet("{id:int}")] // Route example: /api/products/2
     public async Task<ActionResult<Product>> GetProduct(int id)
     {
-        var product = await context.Products.FindAsync(id);
+        // Attempt to retrieve the product by ID from the repository.
+        var product = await repo.GetProductByIdAsync(id);
 
+        // If not found, return HTTP 404.
         if (product == null)
         {
             return NotFound();
         }
 
+        // Return the product as the response.
         return product;
     }
 
+    // =====================
+    //         CREATE
+    // =====================
+
     /// <summary>
-    /// Handles HTTP POST requests to create a new product record in the database.
+    /// Creates a new product record in the database.
     /// </summary>
     /// <param name="product">
-    /// The <see cref="Product"/> object received from the request body.
-    /// This contains the details of the product to be added (e.g., Name, Price, Description).
+    /// The <see cref="Product"/> object provided in the request body containing product details.
     /// </param>
     /// <returns>
-    /// Returns the newly created <see cref="Product"/> entity with its assigned ID.
+    /// Returns the newly created product with its assigned ID.
     /// </returns>
     /// <remarks>
     /// Example request:
+    /// <code>
     /// POST /api/products
     /// {
     ///   "name": "Laptop",
     ///   "price": 1299.99,
     ///   "description": "High-performance business laptop"
     /// }
-    /// 
+    /// </code>
+    ///
     /// Example response:
+    /// <code>
+    /// HTTP 201 Created
     /// {
     ///   "id": 101,
     ///   "name": "Laptop",
     ///   "price": 1299.99,
     ///   "description": "High-performance business laptop"
     /// }
+    /// </code>
     /// </remarks>
+    /// <response code="201">Successfully created a new product.</response>
+    /// <response code="400">If the product could not be created.</response>
     [HttpPost]
     public async Task<ActionResult<Product>> CreateProduct(Product product)
     {
-        // Adds the new Product entity to the EF Core change tracker.
-        // The record is not yet saved in the database at this point.
-        context.Products.Add(product);
+        // Track the new product entity within the repository.
+        repo.AddProduct(product);
 
-        // Saves all pending changes in the context to the database asynchronously.
-        // This generates and executes an INSERT SQL statement under the hood.
-        await context.SaveChangesAsync();
+        // Attempt to save changes to the database asynchronously.
+        if (await repo.SaveChangesAsync())
+        {
+            // Return HTTP 201 Created, including the location header for the new resource.
+            return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
+        }
 
-        // Returns the newly created Product entity as the HTTP response.
-        // ASP.NET Core automatically serializes it to JSON (by default).
-        return product;
+        // Return 400 Bad Request if saving failed.
+        return BadRequest("Problem creating the product");
     }
 
+    // =====================
+    //         UPDATE
+    // =====================
 
     /// <summary>
-    /// Handles HTTP PUT requests to update an existing product in the database.
+    /// Updates an existing product in the database.
     /// </summary>
-    /// <param name="id">
-    /// The ID of the product to update. This is usually provided in the URL path.
-    /// </param>
-    /// <param name="product">
-    /// The <see cref="Product"/> object containing updated product information from the request body.
-    /// </param>
+    /// <param name="id">The ID of the product to update.</param>
+    /// <param name="product">The updated <see cref="Product"/> data from the request body.</param>
     /// <returns>
-    /// Returns an <see cref="ActionResult{Product}"/> indicating the result of the operation:
-    /// - 204 No Content: Successfully updated the product
-    /// - 400 Bad Request: If the product IDs do not match or the product does not exist
+    /// A 204 No Content response on success, or 400/404 on validation errors.
     /// </returns>
     /// <remarks>
     /// Example request:
+    /// <code>
     /// PUT /api/products/5
     /// {
     ///   "id": 5,
@@ -144,55 +162,82 @@ public class ProductsController : ControllerBase
     ///   "description": "Updated description",
     ///   "brand": "Updated brand",
     ///   "type": "Updated type",
-    ///   "quantityInStock": 50,
-    ///   "pictureUrl": "https://example.com/updated-image.jpg"
+    ///   "quantityInStock": 50
     /// }
+    /// </code>
     /// </remarks>
+    /// <response code="204">Successfully updated the product.</response>
+    /// <response code="400">If the product IDs mismatch or the product doesn't exist.</response>
     [HttpPut("{id:int}")]
     public async Task<ActionResult<Product>> UpdateProduct(int id, Product product)
     {
-        // Validate the request:
-        // Check if the ID in the URL matches the product's ID in the body
-        // Also check if the product actually exists in the database
+        // Validation check: ensure ID in URL matches the product's ID.
         if (product.Id != id || !ProductExists(id))
         {
-            // Return 400 Bad Request if IDs do not match or product does not exist
             return BadRequest("Cannot update this product");
         }
 
-        // Mark the entity as modified:
-        // This tells Entity Framework Core that the product entity has been changed
-        // EF Core will generate an UPDATE SQL command for this entity on SaveChangesAsync()
-        context.Entry(product).State = EntityState.Modified;
+        // Mark the entity as modified for EF Core tracking.
+        repo.UpdateProduct(product);
 
-        // Save changes asynchronously:
-        // This executes the UPDATE command in the database
-        await context.SaveChangesAsync();
+        // Save updates to the database.
+        if (await repo.SaveChangesAsync())
+        {
+            return NoContent();
+        }
 
-        // Return 204 No Content:
-        // Standard REST practice: indicate the update succeeded without returning the updated object
-        return NoContent();
+        return BadRequest("Problem updating the product");
     }
 
-    private bool ProductExists(int id)
-    {
-        return context.Products.Any(x => x.Id == id);
-    }
+    // =====================
+    //         DELETE
+    // =====================
 
+    /// <summary>
+    /// Deletes a product record from the database.
+    /// </summary>
+    /// <param name="id">The ID of the product to delete.</param>
+    /// <returns>
+    /// A 204 No Content response on success, or 404 if not found.
+    /// </returns>
+    /// <remarks>
+    /// Example request:
+    /// <code>DELETE /api/products/5</code>
+    /// </remarks>
+    /// <response code="204">Product deleted successfully.</response>
+    /// <response code="404">If the product with the specified ID does not exist.</response>
     [HttpDelete("{id:int}")]
     public async Task<ActionResult> DeleteProduct(int id)
     {
-        var product = await context.Products.FindAsync(id);
+        // Attempt to retrieve the product.
+        var product = await repo.GetProductByIdAsync(id);
 
+        // Return 404 if not found.
         if (product == null) return NotFound();
 
-        context.Products.Remove(product);
+        // Remove the product entity from the context.
+        repo.DeleteProduct(product);
 
-        await context.SaveChangesAsync();
+        // Commit deletion to the database.
+        if (await repo.SaveChangesAsync())
+        {
+            return NoContent();
+        }
 
-        return NoContent();
-
+        return BadRequest("Problem deleting the product");
     }
 
+    // =====================
+    //      UTILITIES
+    // =====================
 
+    /// <summary>
+    /// Checks if a product exists in the repository by ID.
+    /// </summary>
+    /// <param name="id">The product ID to check.</param>
+    /// <returns>True if the product exists, otherwise false.</returns>
+    private bool ProductExists(int id)
+    {
+        return repo.ProductExists(id);
+    }
 }
