@@ -10,7 +10,7 @@ namespace API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-public class ProductsController(IProductRepository repo) : ControllerBase
+public class ProductsController(IGenericRepository<Product> repo) : ControllerBase
 {
     // =====================
     //        GET ALL
@@ -45,8 +45,8 @@ public class ProductsController(IProductRepository repo) : ControllerBase
     {
         // Asynchronously retrieves all Product entities from the repository.
         // The repository handles EF Core query execution and context management.
-        var products = await repo.GetProductsAsync(brand, type, sort);
-
+        //var products = await repo.GetProductsAsync(brand, type, sort);
+        var products = await repo.ListAllAsync();
         // Return the product list wrapped in a 200 OK HTTP response.
         return Ok(products);
     }
@@ -73,7 +73,7 @@ public class ProductsController(IProductRepository repo) : ControllerBase
     public async Task<ActionResult<Product>> GetProduct(int id)
     {
         // Attempt to retrieve the product by ID from the repository.
-        var product = await repo.GetProductByIdAsync(id);
+        var product = await repo.GetByIdAsync(id);
 
         // If not found, return HTTP 404.
         if (product == null)
@@ -126,10 +126,10 @@ public class ProductsController(IProductRepository repo) : ControllerBase
     public async Task<ActionResult<Product>> CreateProduct(Product product)
     {
         // Track the new product entity within the repository.
-        repo.AddProduct(product);
+        repo.Add(product);
 
         // Attempt to save changes to the database asynchronously.
-        if (await repo.SaveChangesAsync())
+        if (await repo.SaveAllAsync())
         {
             // Return HTTP 201 Created, including the location header for the new resource.
             return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
@@ -178,10 +178,10 @@ public class ProductsController(IProductRepository repo) : ControllerBase
         }
 
         // Mark the entity as modified for EF Core tracking.
-        repo.UpdateProduct(product);
+        repo.Update(product);
 
         // Save updates to the database.
-        if (await repo.SaveChangesAsync())
+        if (await repo.SaveAllAsync())
         {
             return NoContent();
         }
@@ -210,16 +210,16 @@ public class ProductsController(IProductRepository repo) : ControllerBase
     public async Task<ActionResult> DeleteProduct(int id)
     {
         // Attempt to retrieve the product.
-        var product = await repo.GetProductByIdAsync(id);
+        var product = await repo.GetByIdAsync(id);
 
         // Return 404 if not found.
         if (product == null) return NotFound();
 
         // Remove the product entity from the context.
-        repo.DeleteProduct(product);
+        repo.Remove(product);
 
         // Commit deletion to the database.
-        if (await repo.SaveChangesAsync())
+        if (await repo.SaveAllAsync())
         {
             return NoContent();
         }
@@ -238,19 +238,21 @@ public class ProductsController(IProductRepository repo) : ControllerBase
     /// <returns>True if the product exists, otherwise false.</returns>
     private bool ProductExists(int id)
     {
-        return repo.ProductExists(id);
+        return repo.Exists(id);
     }
 
     [HttpGet("brands")]
     public async Task<ActionResult<IReadOnlyList<string>>> GetBrands()
     {
-        return Ok(await repo.GetBrandsAsync());
+        // TODO: return Ok(await repo.GetBrandsAsync());
+        return Ok();
     }
 
     [HttpGet("types")]
     public async Task<ActionResult<IReadOnlyList<string>>> GetTypes()
     {
-        return Ok(await repo.GetTypesAsync());
+        // TODO: return Ok(await repo.GetTypesAsync());
+        return Ok();
     }
-    
+
 }
