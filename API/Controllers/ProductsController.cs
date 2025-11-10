@@ -41,11 +41,11 @@ public class ProductsController(IProductRepository repo) : ControllerBase
     /// <response code="200">Returns the list of products successfully retrieved.</response>
     /// <response code="500">If an internal server error occurred during retrieval.</response>
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<Product>>> GetProduct()
+    public async Task<ActionResult<IReadOnlyList<Product>>> GetProduct(string? brand, string? type, string? sort)
     {
         // Asynchronously retrieves all Product entities from the repository.
         // The repository handles EF Core query execution and context management.
-        var products = await repo.GetProductsAsync();
+        var products = await repo.GetProductsAsync(brand, type, sort);
 
         // Return the product list wrapped in a 200 OK HTTP response.
         return Ok(products);
