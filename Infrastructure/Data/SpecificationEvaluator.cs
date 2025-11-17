@@ -52,6 +52,11 @@ public class SpecificationEvaluator<T> where T : BaseEntity
             selectQuery = query.Select(spec.Select);
         }
 
+        if (spec.IsDistinct)
+        {
+            selectQuery = selectQuery?.Distinct();
+        }
+
         return selectQuery ?? query.Cast<TResult>();
     }
 }
