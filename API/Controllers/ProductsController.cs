@@ -1,7 +1,9 @@
+using API.RequestHelpers;
 using Core.Entities;
 using Core.Interfaces;
 using Core.Specifications;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.VisualBasic;
 
 namespace API.Controllers;
 
@@ -49,8 +51,10 @@ public class ProductsController(IGenericRepository<Product> repo) : ControllerBa
         //var products = await repo.GetProductsAsync(brand, type, sort);
         var spec = new ProductSpecification(specParams);
         var products = await repo.ListAsync(spec);
+        var count = await repo.CountAsync(spec);
+        var pagination = new Pagination<Product>(specParams.PageIndex, specParams.PageSize, count, products);
         // Return the product list wrapped in a 200 OK HTTP response.
-        return Ok(products);
+        return Ok(pagination);
     }
 
     // =====================

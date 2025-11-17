@@ -11,30 +11,36 @@ public class ProductSpecParams
         get => _brands;
         set
         {
-            _brands = value.SelectMany(x => x.Split(',', StringSplitOptions.RemoveEmptyEntries)).ToList();
+            _brands = value
+            .SelectMany(x => x.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            .Select(x => x.Trim().ToLower())
+            .ToList();
         }
     }
-    
+
     private List<string> _types = [];
-    public List <string> Types
+    public List<string> Types
     {
         get => _types;
         set
         {
-            _types = value.SelectMany(x => x.Split(',', StringSplitOptions.RemoveEmptyEntries)).ToList();
+            _types = value
+            .SelectMany(x => x.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            .Select(x => x.Trim().ToLower())
+            .ToList();
         }
     }
 
-    // private const int MaxPageSize = 50;
-    // public int PageIndex { get; set; } = 1;
+    private const int MaxPageSize = 50;
+    public int PageIndex { get; set; } = 1;
 
-    // private int _pageSize = 6;
-    // public int PageSize
-    // {
-    //     get => _pageSize;
-    //     set => _pageSize = (value > MaxPageSize) ? MaxPageSize : value;
-    // }
+    private int _pageSize = 6;
+    public int PageSize
+    {
+        get => _pageSize;
+        set => _pageSize = (value > MaxPageSize) ? MaxPageSize : value;
+    }
 
     public string? Sort { get; set; }
-   
+
 }
