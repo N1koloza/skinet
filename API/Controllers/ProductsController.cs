@@ -1,5 +1,6 @@
 using Core.Entities;
 using Core.Interfaces;
+using Core.Specifications;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
@@ -46,7 +47,8 @@ public class ProductsController(IGenericRepository<Product> repo) : ControllerBa
         // Asynchronously retrieves all Product entities from the repository.
         // The repository handles EF Core query execution and context management.
         //var products = await repo.GetProductsAsync(brand, type, sort);
-        var products = await repo.ListAllAsync();
+        var spec = new ProductSpecification(brand, type, sort);
+        var products = await repo.ListAsync(spec);
         // Return the product list wrapped in a 200 OK HTTP response.
         return Ok(products);
     }
