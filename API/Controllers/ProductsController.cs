@@ -11,9 +11,7 @@ namespace API.Controllers;
 /// Controller responsible for handling CRUD operations for <see cref="Product"/> entities.
 /// This class uses dependency injection to access a repository implementing <see cref="IProductRepository"/>.
 /// </summary>
-[ApiController]
-[Route("api/[controller]")]
-public class ProductsController(IGenericRepository<Product> repo) : ControllerBase
+public class ProductsController(IGenericRepository<Product> repo) : BaseApiController
 {
     // =====================
     //        GET ALL
@@ -50,11 +48,8 @@ public class ProductsController(IGenericRepository<Product> repo) : ControllerBa
         // The repository handles EF Core query execution and context management.
         //var products = await repo.GetProductsAsync(brand, type, sort);
         var spec = new ProductSpecification(specParams);
-        var products = await repo.ListAsync(spec);
-        var count = await repo.CountAsync(spec);
-        var pagination = new Pagination<Product>(specParams.PageIndex, specParams.PageSize, count, products);
-        // Return the product list wrapped in a 200 OK HTTP response.
-        return Ok(pagination);
+
+        return await CreatePagedResult(repo, spec, specParams.PageIndex, specParams.PageSize);
     }
 
     // =====================
