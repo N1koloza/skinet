@@ -1,3 +1,4 @@
+using API.Middleware;
 using Core.Interfaces;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -29,9 +30,12 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    // Endpoint-mapping operation that adds OpenAPI endpoints.
     app.MapOpenApi();
 }
 
+app.UseMiddleware<ExceptionMiddleware>();
+// Registers the endpoint middleware that routes requests to your controllers.
 app.MapControllers();
 
 try
