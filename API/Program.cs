@@ -1,6 +1,7 @@
 using API.Middleware;
 using Core.Interfaces;
 using Infrastructure.Data;
+using Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,6 +26,8 @@ builder.Services.AddOpenApi();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddCors();
+builder.Services.AddSingleton<ICartService, CartService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

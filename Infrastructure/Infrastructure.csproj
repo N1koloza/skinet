@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <Folder Include="Data\SeedData\" />
+    <Folder Include="Services\" />
   </ItemGroup>
 
   <PropertyGroup>
