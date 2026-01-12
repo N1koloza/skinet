@@ -15,10 +15,10 @@ public class CartController : BaseApiController
     }
 
     [HttpGet]
-    public async Task<ActionResult<ShoppingCart>> GetCartById(string cartId)
+    public async Task<ActionResult<ShoppingCart>> GetCartById(string Id)
     {
-        var cart = await _cartService.GetCartAsync(cartId);
-        return Ok(cart ?? new ShoppingCart { id = cartId });
+        var cart = await _cartService.GetCartAsync(Id);
+        return Ok(cart ?? new ShoppingCart { id = Id });
     }
 
     [HttpPost]
@@ -33,9 +33,9 @@ public class CartController : BaseApiController
     }
 
     [HttpDelete]
-    public async Task<ActionResult> DeleteCart(string cartId)
+    public async Task<ActionResult> DeleteCart(string Id)
     {
-        var result = await _cartService.DeleteCartAsync(cartId);
+        var result = await _cartService.DeleteCartAsync(Id);
         if (!result)
         {
             return BadRequest("Problem deleting the cart");
