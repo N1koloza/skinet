@@ -51,7 +51,7 @@ app.UseCors(x => x
 
 // Registers the endpoint middleware that routes requests to your controllers.
 app.MapControllers();
-app.MapIdentityApi<AppUser>();
+app.MapGroup("api").MapIdentityApi<AppUser>(); // api/login, api/register
 
 try
 {
